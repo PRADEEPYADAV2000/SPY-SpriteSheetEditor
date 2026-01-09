@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NERV SPRITE FORGE - Advanced Spritesheet Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Roboto+Mono:wght@300;400;700&display=swap');
 
@@ -33,7 +34,6 @@
             overflow-x: hidden;
         }
 
-        /* Animated background grid */
         .grid-background {
             position: fixed;
             top: 0;
@@ -59,12 +59,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(
-                to bottom,
-                transparent 0%,
-                rgba(255, 107, 0, 0.05) 50%,
-                transparent 100%
-            );
+            background: linear-gradient(to bottom, transparent 0%, rgba(255, 107, 0, 0.05) 50%, transparent 100%);
             animation: scan 8s linear infinite;
             pointer-events: none;
             z-index: 9999;
@@ -83,7 +78,6 @@
             z-index: 1;
         }
 
-        /* Header */
         .header {
             border: 2px solid var(--nerv-orange);
             background: var(--nerv-panel);
@@ -137,7 +131,6 @@
             color: var(--nerv-text-dim);
         }
 
-        /* Main Layout */
         .main-layout {
             display: grid;
             grid-template-columns: 350px 1fr;
@@ -145,7 +138,6 @@
             margin-bottom: 20px;
         }
 
-        /* Control Panel */
         .control-panel {
             background: var(--nerv-panel);
             border: 2px solid var(--nerv-orange);
@@ -241,7 +233,6 @@
             cursor: not-allowed;
         }
 
-        /* Upload Zone */
         .upload-zone {
             background: var(--nerv-panel);
             border: 2px dashed var(--nerv-border);
@@ -283,7 +274,6 @@
             font-size: 0.8rem;
         }
 
-        /* Preview Area */
         .preview-area {
             background: var(--nerv-panel);
             border: 2px solid var(--nerv-orange);
@@ -344,7 +334,6 @@
             justify-content: center;
         }
 
-        /* Spritesheet Preview */
         .spritesheet-preview {
             background: var(--nerv-dark);
             border: 1px solid var(--nerv-border);
@@ -358,6 +347,7 @@
             border: 1px solid var(--nerv-orange);
             image-rendering: pixelated;
             background: repeating-conic-gradient(#1a1a1a 0% 25%, #222 0% 50%) 50% / 20px 20px;
+            margin-bottom: 10px;
         }
 
         .spritesheet-info {
@@ -386,7 +376,6 @@
             font-size: 1rem;
         }
 
-        /* Spritesheet Manager */
         .spritesheet-manager {
             background: var(--nerv-panel);
             border: 2px solid var(--nerv-orange);
@@ -394,9 +383,9 @@
         }
 
         .spritesheet-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
         }
 
         .spritesheet-card {
@@ -409,11 +398,6 @@
 
         .spritesheet-card:hover {
             border-color: var(--nerv-orange);
-        }
-
-        .spritesheet-card.active {
-            border-color: var(--nerv-orange);
-            border-width: 2px;
         }
 
         .spritesheet-card-header {
@@ -456,9 +440,17 @@
         .spritesheet-card-stats {
             font-size: 0.75rem;
             color: var(--nerv-text-dim);
+            margin-bottom: 10px;
         }
 
-        /* Status Bar */
+        .spritesheet-card-preview {
+            width: 100%;
+            max-height: 150px;
+            object-fit: contain;
+            border: 1px solid var(--nerv-border);
+            background: repeating-conic-gradient(#1a1a1a 0% 25%, #222 0% 50%) 50% / 10px 10px;
+        }
+
         .status-bar {
             background: var(--nerv-panel);
             border: 2px solid var(--nerv-border);
@@ -471,10 +463,6 @@
 
         .status-text {
             color: var(--nerv-text);
-        }
-
-        .status-warning {
-            color: var(--nerv-warning);
         }
 
         input[type="file"] {
@@ -497,7 +485,6 @@
             border-color: var(--nerv-orange);
         }
 
-        /* Loading Animation */
         .loading {
             display: inline-block;
             width: 12px;
@@ -510,6 +497,15 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        .alert-box {
+            background: rgba(255, 204, 0, 0.1);
+            border: 1px solid var(--nerv-warning);
+            color: var(--nerv-warning);
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 0.8rem;
         }
 
         @media (max-width: 1024px) {
@@ -528,10 +524,9 @@
     <div class="scanline"></div>
 
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <div class="logo">NERV SPRITE FORGE</div>
-            <div class="tagline">Advanced Spritesheet Generation System v2.1.4</div>
+            <div class="tagline">Advanced Multi-Sheet Generation System v3.0.0</div>
             <div class="system-info">
                 <span>STATUS: <span style="color: var(--nerv-text);">OPERATIONAL</span></span>
                 <span>SPRITESHEETS: <span id="totalSheets">0</span></span>
@@ -539,15 +534,13 @@
             </div>
         </div>
 
-        <!-- Main Layout -->
         <div class="main-layout">
-            <!-- Control Panel -->
             <div class="control-panel">
                 <div class="panel-title">⚙ Configuration</div>
 
                 <div class="control-group">
-                    <label class="control-label">Spritesheet Name</label>
-                    <input type="text" class="control-input" id="sheetName" value="spritesheet_01" placeholder="Enter name...">
+                    <label class="control-label">Base Name</label>
+                    <input type="text" class="control-input" id="sheetName" value="spritesheet" placeholder="Enter base name...">
                 </div>
 
                 <div class="control-group">
@@ -584,6 +577,14 @@
                     </select>
                 </div>
 
+                <div class="control-group">
+                    <label class="control-label">Sheet Mode</label>
+                    <select class="control-input" id="sheetMode">
+                        <option value="single">Single Sheet</option>
+                        <option value="multiple">Multiple Sheets (Auto-split)</option>
+                    </select>
+                </div>
+
                 <button class="btn" id="uploadBtn">
                     📁 Add Images
                 </button>
@@ -597,16 +598,12 @@
                     <button class="btn" id="generateBtn" disabled>
                         ⚡ Generate Spritesheet
                     </button>
-                    <button class="btn btn-secondary" id="downloadPngBtn" disabled>
-                        💾 Download PNG
-                    </button>
-                    <button class="btn btn-secondary" id="downloadDataBtn" disabled>
-                        📄 Download Data File
+                    <button class="btn btn-secondary" id="downloadAllBtn" disabled>
+                        📦 Download All (ZIP)
                     </button>
                 </div>
             </div>
 
-            <!-- Preview Area -->
             <div class="preview-area">
                 <div class="panel-title">📦 Input Images</div>
 
@@ -618,38 +615,20 @@
 
                 <div class="images-list" id="imagesList"></div>
 
-                <div class="panel-title" style="margin-top: 30px;">🖼️ Spritesheet Preview</div>
-                <div class="spritesheet-preview">
-                    <canvas id="spritesheetCanvas" class="spritesheet-canvas"></canvas>
-                    <div class="spritesheet-info">
-                        <div class="info-item">
-                            <div class="info-label">Dimensions</div>
-                            <div class="info-value" id="dimensions">0 x 0</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Sprites</div>
-                            <div class="info-value" id="spriteCount">0</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Efficiency</div>
-                            <div class="info-value" id="efficiency">0%</div>
-                        </div>
-                    </div>
-                </div>
+                <div class="panel-title" style="margin-top: 30px;">🖼️ Preview</div>
+                <div id="previewContainer"></div>
             </div>
         </div>
 
-        <!-- Spritesheet Manager -->
         <div class="spritesheet-manager">
-            <div class="panel-title">📊 Spritesheet Manager</div>
+            <div class="panel-title">📊 Generated Spritesheets</div>
             <div class="spritesheet-list" id="spritesheetList">
-                <div style="text-align: center; color: var(--nerv-text-dim); padding: 40px;">
+                <div style="text-align: center; color: var(--nerv-text-dim); padding: 40px; grid-column: 1/-1;">
                     No spritesheets generated yet
                 </div>
             </div>
         </div>
 
-        <!-- Status Bar -->
         <div class="status-bar" style="margin-top: 20px;">
             <span class="status-text" id="statusText">Ready to generate spritesheets</span>
             <span style="color: var(--nerv-text-dim);">NERV SPRITE FORGE © 2025</span>
@@ -657,37 +636,39 @@
     </div>
 
     <script>
-        // Global state
         const state = {
             images: [],
-            spritesheets: [],
-            currentCanvas: null,
-            currentData: null
+            spritesheets: []
         };
 
-        // DOM Elements
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
         const uploadBtn = document.getElementById('uploadBtn');
         const imagesList = document.getElementById('imagesList');
         const generateBtn = document.getElementById('generateBtn');
         const clearBtn = document.getElementById('clearBtn');
-        const downloadPngBtn = document.getElementById('downloadPngBtn');
-        const downloadDataBtn = document.getElementById('downloadDataBtn');
-        const spritesheetCanvas = document.getElementById('spritesheetCanvas');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
         const statusText = document.getElementById('statusText');
+        const previewContainer = document.getElementById('previewContainer');
 
-        // Event Listeners
         uploadBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', handleFileSelect);
         uploadZone.addEventListener('click', () => fileInput.click());
         uploadZone.addEventListener('dragover', handleDragOver);
         uploadZone.addEventListener('dragleave', handleDragLeave);
         uploadZone.addEventListener('drop', handleDrop);
-        generateBtn.addEventListener('click', generateSpritesheet);
+        generateBtn.addEventListener('click', generateSpritesheets);
         clearBtn.addEventListener('click', clearAll);
-        downloadPngBtn.addEventListener('click', downloadPNG);
-        downloadDataBtn.addEventListener('click', downloadData);
+        downloadAllBtn.addEventListener('click', downloadAll);
+
+        // Update button text based on mode
+        document.getElementById('sheetMode').addEventListener('change', (e) => {
+            if (e.target.value === 'single') {
+                generateBtn.textContent = '⚡ Generate Spritesheet';
+            } else {
+                generateBtn.textContent = '⚡ Generate Spritesheets';
+            }
+        });
 
         function handleFileSelect(e) {
             const files = Array.from(e.target.files);
@@ -763,19 +744,17 @@
 
         function clearAll() {
             state.images = [];
-            state.currentCanvas = null;
-            state.currentData = null;
+            state.spritesheets = [];
             renderImagesList();
+            renderSpritesheetManager();
             updateUI();
-            const ctx = spritesheetCanvas.getContext('2d');
-            ctx.clearRect(0, 0, spritesheetCanvas.width, spritesheetCanvas.height);
-            spritesheetCanvas.width = 0;
-            spritesheetCanvas.height = 0;
+            previewContainer.innerHTML = '';
         }
 
         function updateUI() {
             const hasImages = state.images.length > 0;
             generateBtn.disabled = !hasImages;
+            downloadAllBtn.disabled = state.spritesheets.length === 0;
             document.getElementById('totalImages').textContent = state.images.length;
             document.getElementById('totalSheets').textContent = state.spritesheets.length;
 
@@ -786,10 +765,10 @@
             }
         }
 
-        function generateSpritesheet() {
+        function generateSpritesheets() {
             if (state.images.length === 0) return;
 
-            statusText.innerHTML = '<span class="loading"></span> Generating spritesheet...';
+            statusText.innerHTML = '<span class="loading"></span> Generating spritesheets...';
             generateBtn.disabled = true;
 
             setTimeout(() => {
@@ -797,50 +776,112 @@
                 const maxHeight = parseInt(document.getElementById('maxHeight').value);
                 const padding = parseInt(document.getElementById('padding').value);
                 const algorithm = document.getElementById('algorithm').value;
+                const baseName = document.getElementById('sheetName').value || 'spritesheet';
+                const sheetMode = document.getElementById('sheetMode').value;
 
-                // Pack sprites
-                const packed = packSprites(state.images, maxWidth, maxHeight, padding, algorithm);
+                let sheets;
+                if (sheetMode === 'single') {
+                    // Single sheet mode - try to fit everything in one sheet
+                    sheets = generateSingleSheet(state.images, maxWidth, maxHeight, padding, algorithm, baseName);
+                } else {
+                    // Multiple sheets mode - auto-split
+                    sheets = generateMultipleSheets(state.images, maxWidth, maxHeight, padding, algorithm, baseName);
+                }
 
-                if (!packed) {
-                    statusText.textContent = '❌ Failed to pack sprites - try increasing max dimensions';
+                if (!sheets || sheets.length === 0) {
+                    statusText.textContent = '❌ Failed to generate spritesheets';
                     generateBtn.disabled = false;
                     return;
                 }
 
-                // Draw to canvas
-                spritesheetCanvas.width = packed.width;
-                spritesheetCanvas.height = packed.height;
-                const ctx = spritesheetCanvas.getContext('2d');
-                ctx.clearRect(0, 0, packed.width, packed.height);
+                state.spritesheets = sheets;
+                renderPreviews(sheets);
+                renderSpritesheetManager();
+                updateUI();
+
+                statusText.textContent = `✓ Generated ${sheets.length} spritesheet${sheets.length > 1 ? 's' : ''} successfully`;
+                generateBtn.disabled = false;
+            }, 100);
+        }
+
+        function generateSingleSheet(images, maxWidth, maxHeight, padding, algorithm, baseName) {
+            const packed = packSprites(images, maxWidth, maxHeight, padding, algorithm);
+
+            if (!packed || packed.sprites.length === 0) {
+                return null;
+            }
+
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = packed.width;
+            canvas.height = packed.height;
+            const ctx = canvas.getContext('2d');
+
+            packed.sprites.forEach(sprite => {
+                ctx.drawImage(sprite.img, sprite.x, sprite.y, sprite.width, sprite.height);
+            });
+
+            const sheet = {
+                id: Date.now(),
+                name: baseName,
+                canvas: canvas,
+                data: packed,
+                timestamp: new Date().toLocaleString()
+            };
+
+            // Warn if not all images fit
+            if (packed.sprites.length < images.length) {
+                statusText.innerHTML = `<span style="color: var(--nerv-warning);">⚠ Only ${packed.sprites.length}/${images.length} images fit in single sheet!</span>`;
+            }
+
+            return [sheet];
+        }
+
+        function generateMultipleSheets(images, maxWidth, maxHeight, padding, algorithm, baseName) {
+            const sheets = [];
+            let remainingImages = [...images];
+            let sheetIndex = 1;
+
+            while (remainingImages.length > 0) {
+                const packed = packSprites(remainingImages, maxWidth, maxHeight, padding, algorithm);
+
+                if (!packed || packed.sprites.length === 0) {
+                    // If we can't fit any more, break
+                    if (sheets.length === 0) {
+                        return null; // Failed to pack any sprites
+                    }
+                    break;
+                }
+
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = packed.width;
+                canvas.height = packed.height;
+                const ctx = canvas.getContext('2d');
 
                 packed.sprites.forEach(sprite => {
-                    ctx.drawImage(
-                        sprite.img,
-                        sprite.x,
-                        sprite.y,
-                        sprite.width,
-                        sprite.height
-                    );
+                    ctx.drawImage(sprite.img, sprite.x, sprite.y, sprite.width, sprite.height);
                 });
 
-                state.currentCanvas = spritesheetCanvas;
-                state.currentData = packed;
+                // Format sheet name with leading zeros: sheet_01, sheet_02, etc.
+                const paddedIndex = String(sheetIndex).padStart(2, '0');
+                const sheetName = `${baseName}_${paddedIndex}`;
 
-                // Update info
-                document.getElementById('dimensions').textContent = `${packed.width} × ${packed.height}`;
-                document.getElementById('spriteCount').textContent = packed.sprites.length;
-                const efficiency = calculateEfficiency(packed);
-                document.getElementById('efficiency').textContent = efficiency + '%';
+                sheets.push({
+                    id: Date.now() + sheetIndex,
+                    name: sheetName,
+                    canvas: canvas,
+                    data: packed,
+                    timestamp: new Date().toLocaleString()
+                });
 
-                downloadPngBtn.disabled = false;
-                downloadDataBtn.disabled = false;
-                generateBtn.disabled = false;
+                // Remove packed sprites from remaining
+                const packedNames = new Set(packed.sprites.map(s => s.name));
+                remainingImages = remainingImages.filter(img => !packedNames.has(img.name));
+                sheetIndex++;
+            }
 
-                // Add to manager
-                addToManager(packed);
-
-                statusText.textContent = '✓ Spritesheet generated successfully';
-            }, 100);
+            return sheets;
         }
 
         function packSprites(images, maxWidth, maxHeight, padding, algorithm) {
@@ -854,9 +895,7 @@
         }
 
         function packMaxRects(images, maxWidth, maxHeight, padding) {
-            // Sort by height (descending)
             const sorted = [...images].sort((a, b) => b.height - a.height);
-
             const freeRects = [{x: 0, y: 0, width: maxWidth, height: maxHeight}];
             const packed = [];
 
@@ -864,7 +903,6 @@
                 const w = img.width + padding * 2;
                 const h = img.height + padding * 2;
 
-                // Find best fit
                 let bestRect = null;
                 let bestScore = Infinity;
 
@@ -878,7 +916,7 @@
                     }
                 }
 
-                if (!bestRect) return null; // Can't fit
+                if (!bestRect) break; // Can't fit more
 
                 packed.push({
                     name: img.name,
@@ -889,7 +927,6 @@
                     height: img.height
                 });
 
-                // Split free rectangle
                 const newRects = [];
                 if (bestRect.width > w) {
                     newRects.push({
@@ -911,7 +948,8 @@
                 freeRects.splice(freeRects.indexOf(bestRect), 1, ...newRects);
             }
 
-            // Calculate actual bounds
+            if (packed.length === 0) return null;
+
             let actualWidth = 0, actualHeight = 0;
             packed.forEach(sprite => {
                 actualWidth = Math.max(actualWidth, sprite.x + sprite.width + padding);
@@ -943,7 +981,7 @@
                     rowHeight = 0;
                 }
 
-                if (y + h > maxHeight) return null;
+                if (y + h > maxHeight) break;
 
                 packed.push({
                     name: img.name,
@@ -957,6 +995,8 @@
                 x += w;
                 rowHeight = Math.max(rowHeight, h);
             }
+
+            if (packed.length === 0) return null;
 
             return {
                 width: maxWidth,
@@ -981,7 +1021,7 @@
                     rowHeight = 0;
                 }
 
-                if (y + h > maxHeight) return null;
+                if (y + h > maxHeight) break;
 
                 packed.push({
                     name: img.name,
@@ -996,11 +1036,49 @@
                 rowHeight = Math.max(rowHeight, h);
             }
 
+            if (packed.length === 0) return null;
+
             return {
                 width: maxWidth,
                 height: y + rowHeight,
                 sprites: packed
             };
+        }
+
+        function renderPreviews(sheets) {
+            previewContainer.innerHTML = sheets.map((sheet, index) => {
+                const efficiency = calculateEfficiency(sheet.data);
+                return `
+                    <div class="spritesheet-preview">
+                        <canvas class="spritesheet-canvas" width="${sheet.data.width}" height="${sheet.data.height}" id="preview-${index}"></canvas>
+                        <div class="spritesheet-info">
+                            <div class="info-item">
+                                <div class="info-label">Sheet ${index + 1}</div>
+                                <div class="info-value">${sheet.name}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Dimensions</div>
+                                <div class="info-value">${sheet.data.width} × ${sheet.data.height}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Sprites</div>
+                                <div class="info-value">${sheet.data.sprites.length}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Efficiency</div>
+                                <div class="info-value">${efficiency}%</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Draw canvases
+            sheets.forEach((sheet, index) => {
+                const canvas = document.getElementById(`preview-${index}`);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(sheet.canvas, 0, 0);
+            });
         }
 
         function calculateEfficiency(packed) {
@@ -1010,56 +1088,103 @@
             return Math.round((usedArea / totalArea) * 100);
         }
 
-        function downloadPNG() {
-            if (!state.currentCanvas) return;
+        function renderSpritesheetManager() {
+            const list = document.getElementById('spritesheetList');
 
-            const name = document.getElementById('sheetName').value || 'spritesheet';
-            state.currentCanvas.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${name}.png`;
-                a.click();
-                URL.revokeObjectURL(url);
-            });
-
-            statusText.textContent = '✓ PNG downloaded';
-        }
-
-        function downloadData() {
-            if (!state.currentData) return;
-
-            const format = document.getElementById('outputFormat').value;
-            const name = document.getElementById('sheetName').value || 'spritesheet';
-            let data, filename, mimeType;
-
-            if (format === 'plist') {
-                data = generatePlist(state.currentData, name);
-                filename = `${name}.plist`;
-                mimeType = 'application/xml';
-            } else if (format === 'json') {
-                data = generateJSONCocos2d(state.currentData, name);
-                filename = `${name}.json`;
-                mimeType = 'application/json';
-            } else if (format === 'json-array') {
-                data = generateJSONArray(state.currentData);
-                filename = `${name}.json`;
-                mimeType = 'application/json';
-            } else if (format === 'css') {
-                data = generateCSS(state.currentData, name);
-                filename = `${name}.css`;
-                mimeType = 'text/css';
+            if (state.spritesheets.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: var(--nerv-text-dim); padding: 40px; grid-column: 1/-1;">No spritesheets generated yet</div>';
+                return;
             }
 
-            const blob = new Blob([data], { type: mimeType });
-            const url = URL.createObjectURL(blob);
+            list.innerHTML = state.spritesheets.map((sheet, index) => `
+                <div class="spritesheet-card">
+                    <div class="spritesheet-card-header">
+                        <div class="spritesheet-card-title">${sheet.name}</div>
+                        <div class="spritesheet-card-actions">
+                            <button class="btn-icon" onclick="downloadSheet(${index})" title="Download Package">📦</button>
+                            <button class="btn-icon" onclick="removeSheet(${index})" title="Remove">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="spritesheet-card-stats">
+                        ${sheet.data.width}×${sheet.data.height} • ${sheet.data.sprites.length} sprites • ${sheet.timestamp}
+                    </div>
+                    <canvas class="spritesheet-card-preview" width="${sheet.data.width}" height="${sheet.data.height}" id="card-preview-${index}"></canvas>
+                </div>
+            `).join('');
+
+            // Draw preview canvases
+            state.spritesheets.forEach((sheet, index) => {
+                const canvas = document.getElementById(`card-preview-${index}`);
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(sheet.canvas, 0, 0);
+                }
+            });
+        }
+
+        async function downloadSheet(index) {
+            const sheet = state.spritesheets[index];
+            const format = document.getElementById('outputFormat').value;
+
+            const zip = new JSZip();
+
+            // Add PNG
+            const pngBlob = await new Promise(resolve => sheet.canvas.toBlob(resolve));
+            zip.file(`${sheet.name}.png`, pngBlob);
+
+            // Add data file
+            const dataContent = generateDataFile(sheet.data, sheet.name, format);
+            const extension = format === 'plist' ? 'plist' : format === 'css' ? 'css' : 'json';
+            zip.file(`${sheet.name}.${extension}`, dataContent);
+
+            // Generate and download
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(zipBlob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = filename;
+            a.download = `${sheet.name}.zip`;
             a.click();
             URL.revokeObjectURL(url);
 
-            statusText.textContent = `✓ ${format.toUpperCase()} data downloaded`;
+            statusText.textContent = `✓ Downloaded ${sheet.name}.zip`;
+        }
+
+        async function downloadAll() {
+            const format = document.getElementById('outputFormat').value;
+            const zip = new JSZip();
+
+            for (const sheet of state.spritesheets) {
+                // Add PNG
+                const pngBlob = await new Promise(resolve => sheet.canvas.toBlob(resolve));
+                zip.file(`${sheet.name}.png`, pngBlob);
+
+                // Add data file
+                const dataContent = generateDataFile(sheet.data, sheet.name, format);
+                const extension = format === 'plist' ? 'plist' : format === 'css' ? 'css' : 'json';
+                zip.file(`${sheet.name}.${extension}`, dataContent);
+            }
+
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'spritesheets_all.zip';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            statusText.textContent = `✓ Downloaded all ${state.spritesheets.length} spritesheets`;
+        }
+
+        function generateDataFile(packed, sheetName, format) {
+            if (format === 'plist') {
+                return generatePlist(packed, sheetName);
+            } else if (format === 'json') {
+                return generateJSONCocos2d(packed, sheetName);
+            } else if (format === 'json-array') {
+                return generateJSONArray(packed);
+            } else if (format === 'css') {
+                return generateCSS(packed, sheetName);
+            }
         }
 
         function generatePlist(packed, sheetName) {
@@ -1159,110 +1284,12 @@
             return css;
         }
 
-        function addToManager(packed) {
-            const name = document.getElementById('sheetName').value || 'spritesheet';
-            const format = document.getElementById('outputFormat').value;
-
-            // Clone canvas
-            const clonedCanvas = document.createElement('canvas');
-            clonedCanvas.width = packed.width;
-            clonedCanvas.height = packed.height;
-            const ctx = clonedCanvas.getContext('2d');
-            ctx.drawImage(state.currentCanvas, 0, 0);
-
-            const sheet = {
-                id: Date.now(),
-                name: name,
-                canvas: clonedCanvas,
-                data: packed,
-                format: format,
-                timestamp: new Date().toLocaleString()
-            };
-
-            state.spritesheets.push(sheet);
+        function removeSheet(index) {
+            state.spritesheets.splice(index, 1);
             renderSpritesheetManager();
             updateUI();
         }
 
-        function renderSpritesheetManager() {
-            const list = document.getElementById('spritesheetList');
-
-            if (state.spritesheets.length === 0) {
-                list.innerHTML = '<div style="text-align: center; color: var(--nerv-text-dim); padding: 40px;">No spritesheets generated yet</div>';
-                return;
-            }
-
-            list.innerHTML = state.spritesheets.map((sheet, index) => `
-                <div class="spritesheet-card ${index === 0 ? 'active' : ''}">
-                    <div class="spritesheet-card-header">
-                        <div class="spritesheet-card-title">${sheet.name}</div>
-                        <div class="spritesheet-card-actions">
-                            <button class="btn-icon" onclick="downloadSheetPNG(${sheet.id})" title="Download PNG">💾</button>
-                            <button class="btn-icon" onclick="downloadSheetData(${sheet.id})" title="Download Data">📄</button>
-                            <button class="btn-icon" onclick="removeSheet(${sheet.id})" title="Remove">🗑️</button>
-                        </div>
-                    </div>
-                    <div class="spritesheet-card-stats">
-                        ${sheet.data.width}×${sheet.data.height} • ${sheet.data.sprites.length} sprites • ${sheet.format.toUpperCase()} • ${sheet.timestamp}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function downloadSheetPNG(id) {
-            const sheet = state.spritesheets.find(s => s.id === id);
-            if (!sheet) return;
-
-            sheet.canvas.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${sheet.name}.png`;
-                a.click();
-                URL.revokeObjectURL(url);
-            });
-        }
-
-        function downloadSheetData(id) {
-            const sheet = state.spritesheets.find(s => s.id === id);
-            if (!sheet) return;
-
-            let data, filename, mimeType;
-
-            if (sheet.format === 'plist') {
-                data = generatePlist(sheet.data, sheet.name);
-                filename = `${sheet.name}.plist`;
-                mimeType = 'application/xml';
-            } else if (sheet.format === 'json') {
-                data = generateJSONCocos2d(sheet.data, sheet.name);
-                filename = `${sheet.name}.json`;
-                mimeType = 'application/json';
-            } else if (sheet.format === 'json-array') {
-                data = generateJSONArray(sheet.data);
-                filename = `${sheet.name}.json`;
-                mimeType = 'application/json';
-            } else if (sheet.format === 'css') {
-                data = generateCSS(sheet.data, sheet.name);
-                filename = `${sheet.name}.css`;
-                mimeType = 'text/css';
-            }
-
-            const blob = new Blob([data], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function removeSheet(id) {
-            state.spritesheets = state.spritesheets.filter(s => s.id !== id);
-            renderSpritesheetManager();
-            updateUI();
-        }
-
-        // Initialize
         updateUI();
     </script>
 </body>
